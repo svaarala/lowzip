@@ -27,7 +27,9 @@ unsigned int my_read(void *udata, unsigned int offset) {
 
 	/* Out-of-bounds read, no file I/O. */
 	if (offset >= st->input_length) {
+#if 0
 		fprintf(stderr, "OOB read (offset %ld)\n", (long) offset);
+#endif
 		return 0x100U;
 	}
 
