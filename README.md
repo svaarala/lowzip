@@ -12,6 +12,9 @@ environments.  ZIP is a useful format in even embedded environments:
 
 * It has good multi-platform tool support.
 
+* ZIP files can be appended to other files (such as executables) and the
+  leading data is ignored.
+
 As a concrete use case, ZIP can be used as an application package format for
 Javascript applications.  A single ZIP file can contain a JSON metadata file,
 a main application Javascript file, loadable Javascript and native modules,
@@ -76,7 +79,7 @@ lowzip_file *fi;
 fi = lowzip_locate_file(&st, 0, "net/http.js");
 
 if (fi) {
-    unsigned int length = fi->uncompressed_size;
+    unsigned int output_length = fi->uncompressed_size;
 
     /* Calling lowzip_get_data() invalidates the 'fi' file info struct
      * because they share the same internal scratch storage, so read any
@@ -190,4 +193,5 @@ consistent with end of file).  If the validation fails, continue scanning.
 
 * The 'codes' array contains 9-bit values which are now stored as 16-bit
   values.  Figure out a way to store them more efficiently, e.g. by storing
-  the high bit as a separate bitmask.
+  the high bit as a separate bitmask, but without increasing code footprint
+  too much.
