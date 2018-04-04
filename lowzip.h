@@ -1,7 +1,10 @@
 #if !defined(LOWZIP_H_INCLUDED)
 #define LOWZIP_H_INCLUDED
 
-/* Read callback, limited to single byte reads at present for simplicity. */
+/* Read callback, limited to single byte reads at present for simplicity.
+ * Return value is a byte in range [0x00,0xff] or 0x100 if out of bounds
+ * or any other error.
+ */
 typedef unsigned int (*lowzip_read_callback)(void *udata, unsigned int offset);
 
 /* Lowzip state structure, allocated and initialized (partially) by caller.
