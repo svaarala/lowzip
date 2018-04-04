@@ -37,6 +37,7 @@ test: test-inf test-zip
 test-zip: test_lowzip calgary.zip scriptorium
 	valgrind -q ./test_lowzip cantrbry.zip
 	test "`valgrind -q ./test_lowzip cantrbry.zip alice29.txt | md5sum | cut -d ' ' -f 1`" = "74c3b556c76ea0cfae111cdb64d08255"
+	test "`valgrind -q ./test_lowzip --test-repeat cantrbry.zip alice29.txt | md5sum | cut -d ' ' -f 1`" = "397e1b669cd13f15824b1f44012a70e8"  # repeat 3 times
 	test "`valgrind -q ./test_lowzip cantrbry.zip asyoulik.txt | md5sum | cut -d ' ' -f 1`" = "2183e4e23c67c1dcc6cb84e13d8863bf"
 	test "`valgrind -q ./test_lowzip cantrbry.zip cp.html | md5sum | cut -d ' ' -f 1`" = "d4b4e81b46ae7a3cbc2b733bbd6d8cc8"
 	test "`valgrind -q ./test_lowzip cantrbry.zip fields.c | md5sum | cut -d ' ' -f 1`" = "82640457a3569c49615974b5053a73df"
