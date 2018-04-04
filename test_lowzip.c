@@ -60,6 +60,7 @@ static int extract_located_file(lowzip_state *st, lowzip_file *fileinfo, int ign
 	fprintf(stderr, "Extracting %s (%ld bytes -> %ld bytes)\n",
 	        fileinfo->filename, (long) fileinfo->compressed_size,
 	        (long) fileinfo->uncompressed_size);
+	fflush(stderr);
 
 	buf = malloc(fileinfo->uncompressed_size);
 	if (!buf) {
@@ -80,8 +81,10 @@ static int extract_located_file(lowzip_state *st, lowzip_file *fileinfo, int ign
 		} else {
 			fprintf(stderr, "Failed to extract\n");
 		}
+		fflush(stderr);
 	} else {
 		fwrite((void *) st->output_start, 1, (size_t) (st->output_next - st->output_start), stdout);
+		fflush(stdout);
 		retcode = 0;
 	}
 
@@ -137,6 +140,7 @@ int main(int argc, char *argv[]) {
 	FILE *input = NULL;
 	void *buf = NULL;
 	int i;
+	int repeat_count = 1;
 
 	memset((void *) &st, 0, sizeof(st));
 	memset((void *) &read_st, 0, sizeof(read_st));
@@ -146,6 +150,8 @@ int main(int argc, char *argv[]) {
 			ignore_errors = 1;
 		} else if (strcmp(argv[i], "--raw-inflate") == 0) {
 			raw_inflate = 1;
+		} else if (strcmp(argv[i], "--test-repeat") == 0) {
+			repeat_count = 3;  /* For testing multiple reads per handle. */
 		} else {
 			if (zip_filename == NULL) {
 				zip_filename = argv[i];
@@ -201,6 +207,7 @@ int main(int argc, char *argv[]) {
 			goto done;
 		}
 
+	 repeat_test:
 		if (file_filename) {
 			fileinfo = lowzip_locate_file(&st, 0, file_filename);
 			if (!fileinfo) {
@@ -231,6 +238,10 @@ int main(int argc, char *argv[]) {
 				fprintf(stdout, "%s\n", fileinfo->filename);
 			}
 			retcode = 0;
+		}
+
+		if (repeat_count-- > 1) {
+			goto repeat_test;
 		}
 	}
 
