@@ -266,6 +266,13 @@ static unsigned int lowzip_read_bits_reversed(lowzip_state *st, unsigned int nbi
 }
 #endif
 
+static void lowzip_reset_bitstate(lowzip_state *st) {
+#if 0
+	st->curr = 0;  /* Not necessary because of masking. */
+#endif
+	st->have = 0;
+}
+
 /*
  *  Huffman decoding
  */
@@ -443,10 +450,7 @@ static void lowzip_decode_uncompressed_block(lowzip_state *st) {
 	unsigned int len;
 
 	/* Discard unused partially read bits. */
-#if 0
-	st->curr = 0;  /* Not necessary because of masking. */
-#endif
-	st->have = 0;
+	lowzip_reset_bitstate(st);
 
 	/* Parse block length.  Ignore one's complement of length which
 	 * is for error checking.  Checking it would be OK but somewhat
@@ -751,6 +755,7 @@ static void lowzip_decode_inflate_blocks(lowzip_state *st) {
  * Decoded output is in [st->output_start,st->output_next[.
  */
 void lowzip_inflate_raw(lowzip_state *st) {
+	lowzip_reset_bitstate(st);
 	lowzip_decode_inflate_blocks(st);
 }
 
@@ -819,12 +824,13 @@ lowzip_file *lowzip_locate_file(lowzip_state *st, int idx, const char *name) {
 
 		filename_length = lowzip_read2(st, offset + 28);
 #if 0
-		fprintf(stderr, "[", (int) t);
+		fprintf(stderr, "[");
 		for (i = 0; i < filename_length; i++) {
 			t = lowzip_read1(st, offset + LOWZIP_MIN_CDIRFILE_LENGTH + i);
 			fprintf(stderr, "%c", (int) t);
 		}
-		fprintf(stderr, "]\n", (int) t);
+		fprintf(stderr, "]\n");
+		fflush(stderr);
 #endif
 		if (name) {
 			if (filename_length == name_length) {
