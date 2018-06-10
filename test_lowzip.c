@@ -128,7 +128,7 @@ static int extract_raw_inflate(lowzip_state *st, int ignore_errors) {
 
 /* Main program. */
 int main(int argc, char *argv[]) {
-	lowzip_state st;
+	lowzip_state *st = NULL;
 	read_state read_st;
 	lowzip_file *fileinfo;
 	const char *zip_filename = NULL;
@@ -142,7 +142,15 @@ int main(int argc, char *argv[]) {
 	int i;
 	int repeat_count = 1;
 
-	memset((void *) &st, 0, sizeof(st));
+	/* Lowzip state can be stack allocated, but allocated using malloc()
+	 * so that valgrind has a better chance of detecting overruns etc.
+	 */
+	st = (lowzip_state *) malloc(sizeof(*st));
+	if (!st) {
+		goto alloc_error;
+	}
+
+	memset((void *) st, 0, sizeof(*st));
 	memset((void *) &read_st, 0, sizeof(read_st));
 
 	for (i = 1; i < argc; i++) {
@@ -186,9 +194,9 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "sizeof(lowzip_state) = %ld bytes\n", (long) sizeof(lowzip_state));
 #endif
 
-	st.udata = (void *) &read_st;
-	st.read_callback = my_read;
-	st.zip_length = read_st.input_length;
+	st->udata = (void *) &read_st;
+	st->read_callback = my_read;
+	st->zip_length = read_st.input_length;
 
 	if (raw_inflate) {
 		/* This is just for testing, the lowzip_inflate_raw() call
@@ -197,41 +205,41 @@ int main(int argc, char *argv[]) {
 
 		fprintf(stderr, "Inflating (raw inflate) %s\n", zip_filename);
 
-		if (extract_raw_inflate(&st, ignore_errors) == 0) {
+		if (extract_raw_inflate(st, ignore_errors) == 0) {
 			retcode = 0;
 		}
 	} else {
-		lowzip_init_archive(&st);
-		if (st.have_error) {
+		lowzip_init_archive(st);
+		if (st->have_error) {
 			fprintf(stderr, "Lowzip archive init failed\n");
 			goto done;
 		}
 
 	 repeat_test:
 		if (file_filename) {
-			fileinfo = lowzip_locate_file(&st, 0, file_filename);
+			fileinfo = lowzip_locate_file(st, 0, file_filename);
 			if (!fileinfo) {
 				fprintf(stderr, "File %s not found in archive\n", file_filename);
 				goto done;
 			}
 
-			if (extract_located_file(&st, fileinfo, ignore_errors) == 0) {
+			if (extract_located_file(st, fileinfo, ignore_errors) == 0) {
 				retcode = 0;
 			}
 		} else if (file_index >= 0) {
-			fileinfo = lowzip_locate_file(&st, file_index, NULL);
+			fileinfo = lowzip_locate_file(st, file_index, NULL);
 			if (!fileinfo) {
 				fprintf(stderr, "File at index %ld not found in archive\n", (long) file_index);
 				goto done;
 			}
 
-			if (extract_located_file(&st, fileinfo, ignore_errors) == 0) {
+			if (extract_located_file(st, fileinfo, ignore_errors) == 0) {
 				retcode = 0;
 			}
 		} else {
 			/* Without a file name/index, scan all files. */
 			for (i = 0; ; i++) {
-				fileinfo = lowzip_locate_file(&st, i, NULL);
+				fileinfo = lowzip_locate_file(st, i, NULL);
 				if (!fileinfo) {
 					break;
 				}
@@ -246,15 +254,19 @@ int main(int argc, char *argv[]) {
 	}
 
  done:
-	if (buf) {
-		free(buf);
-		buf = NULL;
-	}
+	free(buf);
+	buf = NULL;
 	if (input) {
 		(void) fclose(input);
 		input = NULL;
 	}
+	free(st);
+	st = NULL;
 	return retcode;
+
+ alloc_error:
+	fprintf(stderr, "Failed to allocated\n");
+	goto done;
 
  invalid_zip:
 	fprintf(stderr, "Failed to open input file %s\n", zip_filename);
