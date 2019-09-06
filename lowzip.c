@@ -874,7 +874,7 @@ lowzip_file *lowzip_locate_file(lowzip_state *st, int idx, const char *name) {
 		}
 
 		fi = (lowzip_file *) st->scratch;
-
+		fi->have_data_descriptor = lowzip_read2(st, lhdr_offset + 6) & 0x08;
 		fi->compression_method = lowzip_read2(st, lhdr_offset + 8);
 		fi->crc32 = lowzip_read4(st, lhdr_offset + 14);
 		fi->compressed_size = lowzip_read4(st, lhdr_offset + 18);
@@ -974,12 +974,14 @@ void lowzip_get_data(lowzip_state *st) {
 	unsigned int header_crc32;
 	unsigned int header_uncompressed_size;
 	unsigned int computed_crc32;
+	unsigned int header_have_data_descriptor;
 
 	st->have_error = 0;
 
 	fi = (lowzip_file *) st->scratch;
 	header_crc32 = fi->crc32;
 	header_uncompressed_size = fi->uncompressed_size;
+	header_have_data_descriptor = fi->have_data_descriptor;
 
 	if (fi->compression_method == LOWZIP_COMPRESSION_STORE) {
 		offset = fi->data_offset;
@@ -1008,6 +1010,15 @@ void lowzip_get_data(lowzip_state *st) {
 		goto fail;
 	}
 	computed_crc32 = lowzip_zip_crc32(st->output_start, st->output_next);
+	
+	if (header_have_data_descriptor) {
+		if (lowzip_read4(st, st->read_offset) == 0x08074b50UL) {
+			header_crc32 = lowzip_read4(st, st->read_offset + 4);
+		} else {
+			header_crc32 = lowzip_read4(st, st->read_offset);
+		}
+	}
+
 	if (computed_crc32 != header_crc32) {
 		goto fail;
 	}

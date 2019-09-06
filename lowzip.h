@@ -69,6 +69,8 @@ typedef struct {
 	/* Offset to start of compressed data. */
 	unsigned int data_offset;
 
+	unsigned int have_data_descriptor;
+
 	/* Filename, truncated to 255 characters.  ZIP filenames can be
 	 * 65535 bytes long, but 255 is enough in practice.
 	 */
